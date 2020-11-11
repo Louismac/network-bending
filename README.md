@@ -159,10 +159,11 @@ config["FC1"] = [
    "units":0.6,
 }
 ]
+```
 
-Invert
+### Invert
 1 - activations. This has no parameters.
-
+```
 config["FC1"] = [
 {
    "function":"invert",
