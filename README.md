@@ -1,5 +1,9 @@
-# network-bending
-Colab host for Network Bending Neural Vocoders
+# Network Bending Neural Vocoders
+## Louis McCallun and Matthew Yee-King
+Colab host for Network Bending Neural Vocoders demo. Supported by [HDI Network](https://hdi-network.org/) and [MIMIC project](https://hdi-network.org/).
+
+### Paper
+Network Bending Neural Vocoders @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop 
 
 We provide one notebook with a model (trained on Whitney Houston) for you to experiment with.
 
