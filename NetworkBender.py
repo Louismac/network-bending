@@ -14,6 +14,9 @@ import librosa
 import os
 import sounddevice as sd
 import sys
+from datetime import datetime
+import time
+import threading
 
 class UnitProvider():
     def __init__(self):
@@ -514,16 +517,37 @@ class Generator():
         config["callback_buffer_length"] = model_buffer_length
         
         audio_ptr = [0]
+        output_signal = [self.run_feature_block_through_model(audio_features[audio_ptr[0]])]
+        
+        class GenerateAudioTask: 
+            def __init__(self): 
+                self._running = True
+            def terminate(self): 
+                self._running = False
+            def run(self, action):
+                action(1)
+
+        def generate_audio(ctr):
+            print("generating block")
+            audio_ptr[0] = audio_ptr[0] + 1
+            output_signal[0] = self.run_feature_block_through_model(audio_features[audio_ptr[0]]) 
+       
+        
+        c = [0]
+        
         def audio_callback(outdata, frames, time, status):
             if status:
                 print(status)
-
-            output_signal = self.run_feature_block_through_model(audio_features[audio_ptr[0]]) 
-            audio_ptr[0] = audio_ptr[0] + 1
-            o = np.reshape(output_signal, (-1, 1))
-            print(output_signal.shape, o.shape)
-            outdata[:] = o # [s1,s2,s3] to [[s1], [s2], [s3]] 
-            #print(outdata.shape)
+            print("block",audio_ptr[0])
+            outdata[:] = o 
+            try:
+                c[0].terminate()
+            except:
+                print("no c yet")
+            c[0] = GenerateAudioTask() 
+            t = threading.Thread(target = c[0].run, args = (generate_audio,)) 
+            t.start()
+             
 
         with sd.OutputStream(channels=1, samplerate=config["sample_rate"], blocksize=config["callback_buffer_length"], callback=audio_callback):
             sd.sleep(int(60 * 1000))
