@@ -151,13 +151,17 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
     def init_params(self):
         print("BendingDecoder init_params")
         self.t = {}
-        self.t["FC1"] = []
-        self.t["FC2"] = []
-        self.t["GRU"] = []
-        
-    def add_transform(self, layer, f, a):
-        print("adding transform", layer, f, a)
-        self.t[layer].append(tf.keras.layers.Lambda(f, arguments = a))
+        self.t["FC1"] = {}
+        self.t["FC2"] = {}
+        self.t["GRU"] = {}
+    
+    def update_transform(self, layer, name, f, a):
+        print("updating transform", layer, name, f, a)
+        self.t[layer][name] = tf.keras.layers.Lambda(f, arguments = a)
+    
+    def add_transform(self, layer, name, f, a):
+        print("adding transform", layer, name, f, a)
+        self.t[layer][name] = tf.keras.layers.Lambda(f, arguments = a)
 
     def compute_output(self, *inputs):
       # Initial processing.
@@ -166,18 +170,18 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
 
       # Run an RNN over the latents.
       x = tf.concat(inputs, axis=-1)
-      for f in self.t["FC1"]:
-            x = f(x)
+      for k,v in self.t["FC1"].items():
+            x = v(x)
       x = self.rnn(x)
-      for f in self.t["GRU"]:
-            x = f(x)
+      for k,v in self.t["GRU"].items():
+            x = v(x)
       x = tf.concat(inputs + [x], axis=-1)
 
       # Final processing.
       x = self.out_stack(x)
-      for f in self.t["FC2"]:
+      for k,v in self.t["FC2"].items():
             print("calling FC2", f)
-            x = f(x)
+            x = v(x)
       return x
 
 class Generator():
@@ -431,6 +435,40 @@ class Generator():
             print("check_config::Config has key", key)
         print("check_config::Config looks good")
 
+        
+    def get_transform_args(self, f, duration):
+        arg = {}
+        units = 1;
+        #What percentage of units to transform
+        if "units" in f.keys():
+            units = f["units"]
+        arg["units"] = UnitProvider()
+        arg["units"].units = units
+        if "params" in f.keys():
+            #Each transform has different named parameters e.g. thresh, freq etc...
+            for p in f["params"]:
+                arg[p["name"]] = BendingParam()
+                arg[p["name"]].res = self.frames
+                arg[p["name"]].len = int(np.ceil(duration))
+                #Inherit the properties from the dict and set on the BendingParam object
+                if "args" in p.keys():
+                    for k,v in p["args"].items():
+                        setattr(arg[p["name"]], k, v)
+        return arg
+    
+    def update_transforms(self, config, duration):
+        for l in self.layers:
+        #if transforms given for layer l
+        #There is one BendingTransforms object for each layer
+            if l in config.keys():
+                c = config[l]
+                #For each function in that layer
+                for f in c:
+                    args = self.get_transform_args(f, duration)
+                    #For every transform, there is a function and a set of arguments 
+                    name = f["name"]
+                    function = getattr(self.transforms[l], f["function"])
+                    self.model.decoder.update_transform(l, name, function, args)
 
     def add_transforms(self, config, duration):
         """
@@ -439,24 +477,16 @@ class Generator():
         """
         for l in self.layers:
         #if transforms given for layer l
+        #There is one BendingTransforms object for each layer
             if l in config.keys():
                 c = config[l]
+                #For each function in that layer
                 for f in c:
-                    arg = {}
-                    units = 1;
-                    if "units" in f.keys():
-                        units = f["units"]
-                    arg["units"] = UnitProvider()
-                    arg["units"].units = units
-                    if "params" in f.keys():
-                        for p in f["params"]:
-                            arg[p["name"]] = BendingParam()
-                            arg[p["name"]].res = self.frames
-                            arg[p["name"]].len = int(np.ceil(duration))
-                            if "args" in p.keys():
-                                for k,v in p["args"].items():
-                                    setattr(arg[p["name"]], k, v)
-                    self.model.decoder.add_transform(l, getattr(self.transforms[l], f["function"]), arg)
+                    args = self.get_transform_args(f, duration)
+                    #For every transform, there is a function and a set of arguments 
+                    name = f["name"]
+                    function = getattr(self.transforms[l], f["function"])
+                    self.model.decoder.add_transform(l, name, function, args)
 
 
     def run_features_through_model(self, audio_features):
@@ -539,6 +569,7 @@ class Generator():
             if status:
                 print(status)
             print("block",audio_ptr[0])
+            o = np.reshape(output_signal[0], (-1, 1))
             outdata[:] = o 
             try:
                 c[0].terminate()
@@ -550,7 +581,10 @@ class Generator():
              
 
         with sd.OutputStream(channels=1, samplerate=config["sample_rate"], blocksize=config["callback_buffer_length"], callback=audio_callback):
-            sd.sleep(int(60 * 1000))
+            for i in range(12):
+                sd.sleep(int(5 * 1000))
+                config["FC1"][0]["params"][1]["args"]["scalar"] = i
+                self.update_transforms(config, duration)
 
     def resynthesize(self, feature_csv_filename, audio_filename, config):
         """

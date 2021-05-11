@@ -29,8 +29,17 @@ config["frames"] = 1000
 #transforms for first layer
 config["FC1"] = [
 {
-   "function":"ablate",
+   "name":"transform1",
+   "function":"oscillate",
    "units":0.7,
+    "params":[
+       {"name":"depth",
+        "args":{"scalar":1}
+       },
+       {"name":"freq",
+        "args":{"scalar":1}
+       }
+   ]
 }
 ]
 
