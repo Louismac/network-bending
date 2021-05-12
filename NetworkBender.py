@@ -21,14 +21,15 @@ import threading
 class UnitProvider():
     def __init__(self):
         self.unit_list = []
+        self.shuffled_list = []
         self.units = 1;
 
     def get_units(self, s):
         if len(self.unit_list) == 0:
-            self.unit_list = np.arange(s)
-            np.random.shuffle(self.unit_list)
-            self.unit_list = self.unit_list[:int(s * self.units)]
-        #print(len(self.unit_list))
+            self.shuffled_list = np.arange(s)
+            np.random.shuffle(self.shuffled_list)
+        self.unit_list = self.shuffled_list[:int(s * self.units)]
+        print(len(self.unit_list),self.units)
         return self.unit_list
 
 class BendingParam():
@@ -156,7 +157,6 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
         self.t["GRU"] = {}
     
     def update_transform(self, layer, name, f, a):
-        print("updating transform", layer, name, f, a)
         self.t[layer][name] = tf.keras.layers.Lambda(f, arguments = a)
     
     def add_transform(self, layer, name, f, a):
@@ -448,6 +448,7 @@ class Generator():
             arg["units"] = existing["units"]
         
         arg["units"].units = units
+        print(arg["units"].units)
         if "params" in f.keys():
             #Each transform has different named parameters e.g. thresh, freq etc...
             for p in f["params"]:
@@ -588,9 +589,10 @@ class Generator():
              
 
         with sd.OutputStream(channels=1, samplerate=config["sample_rate"], blocksize=config["callback_buffer_length"], callback=audio_callback):
-            for i in range(100):
+            for i in np.linspace(0.5,1,100):
                 sd.sleep(int(1 * 1000))
-                config["FC1"][0]["params"][1]["args"]["scalar"] = i
+                #config["FC1"][0]["params"][1]["args"]["scalar"] = i
+                config["FC1"][0]["units"]=i
                 self.update_transforms(config, duration)
 
     def resynthesize(self, feature_csv_filename, audio_filename, config):

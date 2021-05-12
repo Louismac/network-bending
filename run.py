@@ -28,20 +28,28 @@ config["input_buf_length"] = 4 * samplerate
 config["frames"] = 1000
 #transforms for first layer
 config["FC1"] = [
-{
-   "name":"transform1",
-   "function":"oscillate",
-   "units":0.7,
-    "params":[
-       {"name":"depth",
-        "args":{"scalar":1}
-       },
-       {"name":"freq",
-        "args":{"scalar":1}
-       }
-   ]
-}
+    {
+       "name":"transform1",
+       "function":"ablate",
+       "units":0.5,
+    }
 ]
+
+# config["FC1"] = [
+# {
+#    "name":"transform1",
+#    "function":"oscillate",
+#    "units":0.7,
+#     "params":[
+#        {"name":"depth",
+#         "args":{"scalar":2}
+#        },
+#        {"name":"freq",
+#         "args":{"scalar":20}
+#        }
+#    ]
+# }
+# ]
 
 g = Generator()
 g.check_config(config)
