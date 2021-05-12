@@ -7,7 +7,6 @@ import pandas as pd
 import scipy.io.wavfile as wavutils
 import tensorflow as tf
 import tensorflow_probability as tfp
-import time
 import datetime
 import json
 import librosa
@@ -15,8 +14,9 @@ import os
 import sounddevice as sd
 import sys
 from datetime import datetime
-import time
+from time import sleep
 import threading
+import mido
 
 class UnitProvider():
     def __init__(self):
@@ -29,7 +29,6 @@ class UnitProvider():
             self.shuffled_list = np.arange(s)
             np.random.shuffle(self.shuffled_list)
         self.unit_list = self.shuffled_list[:int(s * self.units)]
-        print(len(self.unit_list),self.units)
         return self.unit_list
 
 class BendingParam():
@@ -171,7 +170,7 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
       # Run an RNN over the latents.
       x = tf.concat(inputs, axis=-1)
       for k,v in self.t["FC1"].items():
-            x = v(x)
+          x = v(x)
       x = self.rnn(x)
       for k,v in self.t["GRU"].items():
             x = v(x)
@@ -180,7 +179,6 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
       # Final processing.
       x = self.out_stack(x)
       for k,v in self.t["FC2"].items():
-            print("calling FC2", f)
             x = v(x)
       return x
 
@@ -437,6 +435,10 @@ class Generator():
 
         
     def get_transform_args(self, f, duration, existing = None):
+        """
+        Gets the arguments to pass to the transforms lambda layer
+        Optionally takes an existing dicionary (if updating not initialising)
+        """
         arg = {}
         units = 1;
         #What percentage of units to transform
@@ -448,7 +450,6 @@ class Generator():
             arg["units"] = existing["units"]
         
         arg["units"].units = units
-        print(arg["units"].units)
         if "params" in f.keys():
             #Each transform has different named parameters e.g. thresh, freq etc...
             for p in f["params"]:
@@ -465,6 +466,10 @@ class Generator():
         return arg
     
     def update_transforms(self, config, duration):
+        """
+        updates the network bending transforms to the network
+        as specified by config
+        """
         for l in self.layers:
             #if transforms given for layer l
             #There is one BendingTransforms object for each layer
@@ -523,7 +528,7 @@ class Generator():
         start_idx = [0]
         samplerate = 16000
         sd.default.samplerate = samplerate
-        sd.default.channels = 1 # only one channel for noe!
+        sd.default.channels = 1 # only one channel for now!
         def callback(outdata, frames, time, status):
             if status:
                 print(status, file=sys.stderr)
@@ -537,8 +542,11 @@ class Generator():
             print('#' * 80)
             sd.sleep(int(60 * 1000))
     
-    def start_realtime(self, feature_csv_filename, audio_filename, config):
-        
+    def start_midi(self,feature_csv_filename, audio_filename, config):
+        self.start_realtime(feature_csv_filename, audio_filename, config, True)
+    
+    def start_realtime(self, feature_csv_filename, audio_filename, config, midi = False):
+
         sd.default.samplerate = config["sample_rate"]
         sd.default.channels = 1 # only one channel for noe!
         
@@ -557,6 +565,15 @@ class Generator():
         audio_ptr = [0]
         output_signal = [self.run_feature_block_through_model(audio_features[audio_ptr[0]])]
         
+        if midi:
+            def receive_message(message):
+                print(message)
+                config["FC2"][0]["units"] = message.value/127
+                self.update_transforms(config, duration)
+
+            inport = mido.open_input('Akai MPD32 Port 1')
+            inport.callback = receive_message
+
         class GenerateAudioTask: 
             def __init__(self): 
                 self._running = True
@@ -566,17 +583,18 @@ class Generator():
                 action(1)
 
         def generate_audio(ctr):
+            sleep(2.5)
             print("generating block")
             audio_ptr[0] = audio_ptr[0] + 1
             output_signal[0] = self.run_feature_block_through_model(audio_features[audio_ptr[0]]) 
+            print("done generating block")
        
-        
         c = [0]
         
         def audio_callback(outdata, frames, time, status):
             if status:
                 print(status)
-            print("block",audio_ptr[0])
+            print("block",audio_ptr[0],)
             o = np.reshape(output_signal[0], (-1, 1))
             outdata[:] = o 
             try:
@@ -584,16 +602,12 @@ class Generator():
             except:
                 print("no c yet")
             c[0] = GenerateAudioTask() 
-            t = threading.Thread(target = c[0].run, args = (generate_audio,)) 
+            t = threading.Thread(target = c[0].run, args = (generate_audio,))
             t.start()
-             
 
         with sd.OutputStream(channels=1, samplerate=config["sample_rate"], blocksize=config["callback_buffer_length"], callback=audio_callback):
             for i in np.linspace(0.5,1,100):
                 sd.sleep(int(1 * 1000))
-                #config["FC1"][0]["params"][1]["args"]["scalar"] = i
-                config["FC1"][0]["units"]=i
-                self.update_transforms(config, duration)
 
     def resynthesize(self, feature_csv_filename, audio_filename, config):
         """

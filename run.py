@@ -27,7 +27,7 @@ config["db_boost"] = 10
 config["input_buf_length"] = 4 * samplerate
 config["frames"] = 1000
 #transforms for first layer
-config["FC1"] = [
+config["FC2"] = [
     {
        "name":"transform1",
        "function":"ablate",
@@ -58,5 +58,5 @@ feature_csvfile = g.extract_features_and_write_to_file(input_file)
 
 np.set_printoptions(threshold=np.inf)
 # step 2: do the resynthesis
-audio_gen = g.start_realtime(feature_csvfile, input_file, config)
+audio_gen = g.start_midi(feature_csvfile, input_file, config)
 #g.play_sine()
