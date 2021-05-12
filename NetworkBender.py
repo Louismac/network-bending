@@ -49,15 +49,15 @@ class BendingParam():
     def get_values(self):
         vals = []
         if self.lfo:
-          r = (self.max - self.min) / 2
-          vals = np.array([self.step_lfo() for i in range(self.res)])
-          vals = vals + (1 + self.min)
-          vals = vals * r
+            r = (self.max - self.min) / 2
+            vals = np.array([self.step_lfo() for i in range(self.res)])
+            vals = vals + (1 + self.min)
+            vals = vals * r
         elif self.ramp:
-          vals = np.linspace(self.min, self.max, self.len * self.res)[self.t:self.t+self.res]
-          self.t = self.t + self.res
+            vals = np.linspace(self.min, self.max, self.len * self.res)[self.t:self.t+self.res]
+            self.t = self.t + self.res
         else:
-          vals = np.ones(self.res) * self.scalar
+            vals = np.ones(self.res) * self.scalar
         return vals
  
     def step_lfo(self):
@@ -436,18 +436,25 @@ class Generator():
         print("check_config::Config looks good")
 
         
-    def get_transform_args(self, f, duration):
+    def get_transform_args(self, f, duration, existing = None):
         arg = {}
         units = 1;
         #What percentage of units to transform
         if "units" in f.keys():
             units = f["units"]
-        arg["units"] = UnitProvider()
+        if existing == None:
+            arg["units"] = UnitProvider()
+        else:
+            arg["units"] = existing["units"]
+        
         arg["units"].units = units
         if "params" in f.keys():
             #Each transform has different named parameters e.g. thresh, freq etc...
             for p in f["params"]:
-                arg[p["name"]] = BendingParam()
+                if existing == None:
+                    arg[p["name"]] = BendingParam()
+                else:
+                    arg[p["name"]] = existing[p["name"]]
                 arg[p["name"]].res = self.frames
                 arg[p["name"]].len = int(np.ceil(duration))
                 #Inherit the properties from the dict and set on the BendingParam object
@@ -458,15 +465,15 @@ class Generator():
     
     def update_transforms(self, config, duration):
         for l in self.layers:
-        #if transforms given for layer l
-        #There is one BendingTransforms object for each layer
+            #if transforms given for layer l
+            #There is one BendingTransforms object for each layer
             if l in config.keys():
                 c = config[l]
                 #For each function in that layer
                 for f in c:
-                    args = self.get_transform_args(f, duration)
-                    #For every transform, there is a function and a set of arguments 
                     name = f["name"]
+                    existing_args = self.model.decoder.t[l][name].arguments
+                    args = self.get_transform_args(f, duration, existing_args)
                     function = getattr(self.transforms[l], f["function"])
                     self.model.decoder.update_transform(l, name, function, args)
 
@@ -581,8 +588,8 @@ class Generator():
              
 
         with sd.OutputStream(channels=1, samplerate=config["sample_rate"], blocksize=config["callback_buffer_length"], callback=audio_callback):
-            for i in range(12):
-                sd.sleep(int(5 * 1000))
+            for i in range(100):
+                sd.sleep(int(1 * 1000))
                 config["FC1"][0]["params"][1]["args"]["scalar"] = i
                 self.update_transforms(config, duration)
 
