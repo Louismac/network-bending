@@ -27,17 +27,22 @@ config["db_boost"] = 10
 config["input_buf_length"] = 4 * samplerate
 config["frames"] = 1000
 #transforms for first layer
-# config["FC2"] = [
-#     {
-#        "name":"transform1",
-#        "function":"ablate",
-#        "units":0.5,
-#     }
-# ]
 
 config["transforms"] = [
     {
-        "layer":"FC1",
+        "layer":"FC2",
+        "function":"ablate",
+        "units":
+        {                
+            "value":0.7,
+            "midi":
+            {
+                "cc":22
+            }
+        },
+    },
+    {
+        "layer":"FC2",
         "function":"oscillate",
         "units":
         {                
@@ -53,8 +58,8 @@ config["transforms"] = [
                 "value":1,
                 "midi":
                 {
-                    "min":0,
-                    "max":1,
+                    "min":-5,
+                    "max":5,
                     "cc":24
                 }
             },

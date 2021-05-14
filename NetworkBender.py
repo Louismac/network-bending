@@ -562,12 +562,13 @@ class Generator():
                         if cc == t["units"]["midi"]["cc"]:
                             t["units"]["value"] = (message.value/127)
                             print("updated units to ", t["units"]["value"])
-                    for p in t["params"]:
-                        if "midi" in p.keys():
-                            if cc == p["midi"]["cc"]:
-                                r = p["midi"]["max"] - p["midi"]["min"]
-                                p["value"] = ((message.value / 127) * r ) + p["midi"]["min"]
-                                print("updated", p["name"], "to ", p["value"])
+                    if "params" in t.keys():
+                        for p in t["params"]:
+                            if "midi" in p.keys():
+                                if cc == p["midi"]["cc"]:
+                                    r = p["midi"]["max"] - p["midi"]["min"]
+                                    p["value"] = ((message.value / 127) * r ) + p["midi"]["min"]
+                                    print("updated", p["name"], "to ", p["value"])
                 self.update_transforms(config, duration)
 
             inport = mido.open_input('Akai MPD32 Port 1')
