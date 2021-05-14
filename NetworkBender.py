@@ -39,7 +39,7 @@ class BendingParam():
         self.unit_list = []
         self.lfo = False
         self.ramp = False
-        self.scalar = 0
+        self.value = 0
         self.min = 0
         self.max = 1
         self.freq = 1
@@ -57,7 +57,7 @@ class BendingParam():
             vals = np.linspace(self.min, self.max, self.len * self.res)[self.t:self.t+self.res]
             self.t = self.t + self.res
         else:
-            vals = np.ones(self.res) * self.scalar
+            vals = np.ones(self.res) * self.value
         return vals
  
     def step_lfo(self):
@@ -108,6 +108,7 @@ class BendingTransforms():
     
     def oscillate(self, src, freq, depth, units):
         src = src.numpy()
+        print(freq.value,depth.value,units.units)
         src = src.reshape((src.shape[1], src.shape[2]))
         M, N = src.shape
         f = freq.get_values()
@@ -434,72 +435,59 @@ class Generator():
         print("check_config::Config looks good")
 
         
-    def get_transform_args(self, f, duration, existing = None):
+    def get_transform_args(self, config, duration, existing = None):
         """
         Gets the arguments to pass to the transforms lambda layer
         Optionally takes an existing dicionary (if updating not initialising)
         """
-        arg = {}
+        transform_arguments = {}
         units = 1;
         #What percentage of units to transform
-        if "units" in f.keys():
-            units = f["units"]
+        if "units" in config.keys():
+            units = config["units"]["value"]
         if existing == None:
-            arg["units"] = UnitProvider()
+            transform_arguments["units"] = UnitProvider()
         else:
-            arg["units"] = existing["units"]
+            transform_arguments["units"] = existing["units"]
         
-        arg["units"].units = units
-        if "params" in f.keys():
+        transform_arguments["units"].units = units
+        if "params" in config.keys():
             #Each transform has different named parameters e.g. thresh, freq etc...
-            for p in f["params"]:
+            for p in config["params"]:
                 if existing == None:
-                    arg[p["name"]] = BendingParam()
+                    transform_arguments[p["name"]] = BendingParam()
                 else:
-                    arg[p["name"]] = existing[p["name"]]
-                arg[p["name"]].res = self.frames
-                arg[p["name"]].len = int(np.ceil(duration))
+                    transform_arguments[p["name"]] = existing[p["name"]]
+                transform_arguments[p["name"]].res = self.frames
+                transform_arguments[p["name"]].len = int(np.ceil(duration))
+                transform_arguments[p["name"]].value = p["value"]
                 #Inherit the properties from the dict and set on the BendingParam object
                 if "args" in p.keys():
                     for k,v in p["args"].items():
-                        setattr(arg[p["name"]], k, v)
-        return arg
+                        setattr(transform_arguments[p["name"]], k, v)
+        return transform_arguments
     
     def update_transforms(self, config, duration):
         """
         updates the network bending transforms to the network
         as specified by config
         """
-        for l in self.layers:
-            #if transforms given for layer l
-            #There is one BendingTransforms object for each layer
-            if l in config.keys():
-                c = config[l]
-                #For each function in that layer
-                for f in c:
-                    name = f["name"]
-                    existing_args = self.model.decoder.t[l][name].arguments
-                    args = self.get_transform_args(f, duration, existing_args)
-                    function = getattr(self.transforms[l], f["function"])
-                    self.model.decoder.update_transform(l, name, function, args)
+        for i, c in enumerate(config["transforms"]):
+            args = self.get_transform_args(c, duration)
+            function = getattr(self.transforms[c["layer"]], c["function"])
+            self.model.decoder.update_transform(c["layer"], str(i), function, args)
 
     def add_transforms(self, config, duration):
         """
         adds the network bending transforms to the network
         as specified by config
         """
-        for l in self.layers:
-        #if transforms given for layer l
-        #There is one BendingTransforms object for each layer
-            if l in config.keys():
-                c = config[l]
-                #For each function in that layer
-                for f in c:
-                    args = self.get_transform_args(f, duration)
-                    #For every transform, there is a function and a set of arguments 
-                    name = f["name"]
-                    function = getattr(self.transforms[l], f["function"])
-                    self.model.decoder.add_transform(l, name, function, args)
+        
+        for i, c in enumerate(config["transforms"]):
+            args = self.get_transform_args(c, duration)
+            function = getattr(self.transforms[c["layer"]], c["function"])
+            print(c["layer"], str(i), function, args)
+            self.model.decoder.add_transform(c["layer"], str(i), function, args)
 
 
     def run_features_through_model(self, audio_features):
@@ -548,7 +536,7 @@ class Generator():
     def start_realtime(self, feature_csv_filename, audio_filename, config, midi = False):
 
         sd.default.samplerate = config["sample_rate"]
-        sd.default.channels = 1 # only one channel for noe!
+        sd.default.channels = 1 # only one channel for now!
         
         # setup the model
         self.setup_resynthesis(config["model_dir"]) 
@@ -567,8 +555,19 @@ class Generator():
         
         if midi:
             def receive_message(message):
-                print(message)
-                config["FC2"][0]["units"] = message.value/127
+                #print(message)
+                cc = message.control
+                for t in config["transforms"]:
+                    if "midi" in t["units"].keys():
+                        if cc == t["units"]["midi"]["cc"]:
+                            t["units"]["value"] = (message.value/127)
+                            print("updated units to ", t["units"]["value"])
+                    for p in t["params"]:
+                        if "midi" in p.keys():
+                            if cc == p["midi"]["cc"]:
+                                r = p["midi"]["max"] - p["midi"]["min"]
+                                p["value"] = ((message.value / 127) * r ) + p["midi"]["min"]
+                                print("updated", p["name"], "to ", p["value"])
                 self.update_transforms(config, duration)
 
             inport = mido.open_input('Akai MPD32 Port 1')

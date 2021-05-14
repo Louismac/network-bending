@@ -27,29 +27,50 @@ config["db_boost"] = 10
 config["input_buf_length"] = 4 * samplerate
 config["frames"] = 1000
 #transforms for first layer
-config["FC2"] = [
+# config["FC2"] = [
+#     {
+#        "name":"transform1",
+#        "function":"ablate",
+#        "units":0.5,
+#     }
+# ]
+
+config["transforms"] = [
     {
-       "name":"transform1",
-       "function":"ablate",
-       "units":0.5,
+        "layer":"FC1",
+        "function":"oscillate",
+        "units":
+        {                
+            "value":0.7,
+            "midi":
+            {
+                "cc":23
+            }
+        },
+        "params":[
+            {
+                "name":"depth",
+                "value":1,
+                "midi":
+                {
+                    "min":0,
+                    "max":1,
+                    "cc":24
+                }
+            },
+            {
+                "name":"freq",
+                "value":5,
+                "midi":
+                {
+                    "min":3,
+                    "max":20,
+                    "cc":25
+                }
+            },
+        ]
     }
 ]
-
-# config["FC1"] = [
-# {
-#    "name":"transform1",
-#    "function":"oscillate",
-#    "units":0.7,
-#     "params":[
-#        {"name":"depth",
-#         "args":{"scalar":2}
-#        },
-#        {"name":"freq",
-#         "args":{"scalar":20}
-#        }
-#    ]
-# }
-# ]
 
 g = Generator()
 g.check_config(config)
