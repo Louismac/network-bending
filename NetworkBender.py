@@ -151,6 +151,9 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
 
     def init_params(self):
         print("BendingDecoder init_params")
+        self.clear_transforms()
+    
+    def clear_transforms(self):
         self.t = {}
         self.t["FC1"] = {}
         self.t["FC2"] = {}
@@ -435,7 +438,7 @@ class Generator():
         print("check_config::Config looks good")
 
         
-    def get_transform_args(self, config, duration, existing = None):
+    def get_transform_args(self, config, existing = None):
         """
         Gets the arguments to pass to the transforms lambda layer
         Optionally takes an existing dicionary (if updating not initialising)
@@ -459,7 +462,7 @@ class Generator():
                 else:
                     transform_arguments[p["name"]] = existing[p["name"]]
                 transform_arguments[p["name"]].res = self.frames
-                transform_arguments[p["name"]].len = int(np.ceil(duration))
+                transform_arguments[p["name"]].len = int(np.ceil(self.duration))
                 transform_arguments[p["name"]].value = p["value"]
                 #Inherit the properties from the dict and set on the BendingParam object
                 if "args" in p.keys():
@@ -467,24 +470,24 @@ class Generator():
                         setattr(transform_arguments[p["name"]], k, v)
         return transform_arguments
     
-    def update_transforms(self, config, duration):
+    def update_transforms(self, config):
         """
         updates the network bending transforms to the network
         as specified by config
         """
         for i, c in enumerate(config["transforms"]):
-            args = self.get_transform_args(c, duration)
+            args = self.get_transform_args(c)
             function = getattr(self.transforms[c["layer"]], c["function"])
             self.model.decoder.update_transform(c["layer"], str(i), function, args)
 
-    def add_transforms(self, config, duration):
+    def add_transforms(self, config):
         """
         adds the network bending transforms to the network
         as specified by config
         """
         
         for i, c in enumerate(config["transforms"]):
-            args = self.get_transform_args(c, duration)
+            args = self.get_transform_args(c)
             function = getattr(self.transforms[c["layer"]], c["function"])
             print(c["layer"], str(i), function, args)
             self.model.decoder.add_transform(c["layer"], str(i), function, args)
@@ -532,23 +535,30 @@ class Generator():
     
     def start_midi(self,feature_csv_filename, audio_filename, config):
         self.start_realtime(feature_csv_filename, audio_filename, config, True)
+        
+    def update_config(self, config):
+        self.config = config
+        self.model.decoder.clear_transforms()
+        self.add_transforms(config)
     
     def start_realtime(self, feature_csv_filename, audio_filename, config, midi = False):
 
         sd.default.samplerate = config["sample_rate"]
         sd.default.channels = 1 # only one channel for now!
+        self.config = config
         
         # setup the model
         self.setup_resynthesis(config["model_dir"]) 
         # get the features ready
         audio_features, duration = self.load_and_prepare_features_for_model(feature_csv_filename, audio_filename, config)
+        self.duration = duration
         # setup the bending transforms
         for l in self.layers:
             self.transforms[l].res = self.frames;
-        self.add_transforms(config, duration)
+        self.add_transforms(self.config)
         
-        model_buffer_length = config["input_buf_length"]
-        config["callback_buffer_length"] = model_buffer_length
+        model_buffer_length = self.config["input_buf_length"]
+        self.config["callback_buffer_length"] = model_buffer_length
         
         audio_ptr = [0]
         output_signal = [self.run_feature_block_through_model(audio_features[audio_ptr[0]])]
@@ -556,7 +566,7 @@ class Generator():
         if midi:
             def receive_message(message):
                 cc = message.control
-                for t in config["transforms"]:
+                for t in self.config["transforms"]:
                     if "midi" in t["units"].keys():
                         if cc == t["units"]["midi"]["cc"]:
                             t["units"]["value"] = (message.value/127)
@@ -568,10 +578,10 @@ class Generator():
                                     r = p["midi"]["max"] - p["midi"]["min"]
                                     p["value"] = ((message.value / 127) * r ) + p["midi"]["min"]
                                     print("updated", p["name"], "to ", p["value"])
-                self.update_transforms(config, duration)
+                self.update_transforms(self.config)
 
-            inport = mido.open_input('Akai MPD32 Port 1')
-            inport.callback = receive_message
+            self.inport = mido.open_input('Akai MPD32 Port 1')
+            self.inport.callback = receive_message
 
         class GenerateAudioTask: 
             def __init__(self): 
@@ -604,7 +614,7 @@ class Generator():
             t = threading.Thread(target = c[0].run, args = (generate_audio,))
             t.start()
 
-        with sd.OutputStream(channels=1, samplerate=config["sample_rate"], blocksize=config["callback_buffer_length"], callback=audio_callback):
+        with sd.OutputStream(channels=1, samplerate=self.config["sample_rate"], blocksize=self.config["callback_buffer_length"], callback=audio_callback):
             for i in np.linspace(0.5,1,100):
                 sd.sleep(int(1 * 1000))
 

@@ -5,6 +5,7 @@ import os
 from NetworkBender import Generator
 from expand_gpu_memory import expand
 import numpy as np
+import threading
 
 class NetworkBenderFrame(Frame):
 
@@ -22,31 +23,44 @@ class NetworkBenderFrame(Frame):
 
 
         expand()
+        
+        class RunModelTask: 
+            def __init__(self): 
+                self._running = True
+            def terminate(self): 
+                self._running = False
+            def run(self, action):
+                action()
 
-        ##See Instructions (https://github.com/Louismac/network-bending/blob/main/README.md)
-        samplerate = 16000
-        input_file = AUDIO_DATA_DIR + "/monk-48.wav"
-        config = {}
-        config["model_dir"] = MODEL_DIR
-        config["sample_rate"] = samplerate
-        #pick how much of input file to do (0->1)
-        config["features"] = {"file_name":input_file, "start":0, "end":1}
-        #add boost to loudness feature of input
-        config["db_boost"] = 10
-        #4 secs at 16000
-        config["input_buf_length"] = 4 * samplerate
-        config["frames"] = 1000
-        self.update_transforms_from_ui()
-        config["transforms"] = self.transforms
-        g = Generator()
-        g.check_config(config)
-        # step 1: write features to CSV file
-        feature_csvfile = g.extract_features_and_write_to_file(input_file)
-
-        np.set_printoptions(threshold=np.inf)
-        # step 2: do the resynthesis
-        audio_gen = g.start_midi(feature_csvfile, input_file, config)
-      
+        def run_model():
+            samplerate = 16000
+            input_file = AUDIO_DATA_DIR + "/monk-48.wav"
+            config = {}
+            config["model_dir"] = MODEL_DIR
+            config["sample_rate"] = samplerate
+            #pick how much of input file to do (0->1)
+            config["features"] = {"file_name":input_file, "start":0, "end":1}
+            #add boost to loudness feature of input
+            config["db_boost"] = 10
+            #4 secs at 16000
+            config["input_buf_length"] = 4 * samplerate
+            config["frames"] = 1000
+            self.update_transforms_from_ui()
+            config["transforms"] = self.transforms
+            if not hasattr(self, 'g'):
+                self.g = Generator()
+                self.g.check_config(config)
+                # step 1: write features to CSV file
+                self.feature_csvfile = self.g.extract_features_and_write_to_file(input_file)
+                # step 2: do the resynthesis
+                audio_gen = self.g.start_midi(self.feature_csvfile, input_file, config)
+            else:
+                self.g.update_config(config)
+            
+            
+        c = RunModelTask() 
+        t = threading.Thread(target = c.run, args = (run_model,))
+        t.start()
     
     def update_transforms_from_ui(self):
         config = []
@@ -118,7 +132,7 @@ class NetworkBenderFrame(Frame):
 
         button = Button(
            self, 
-           text="Run", 
+           text="Update", 
            command=self.run
         )
         button.grid(column=0, row = NUM_TRANSFORMS)
