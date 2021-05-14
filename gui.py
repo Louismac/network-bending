@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter.ttk import Frame, Button, Entry, Style
+from tkinter.ttk import Button, Entry, Style
 DRIVE_DIR = ''
 import os
 from NetworkBender import Generator
@@ -11,7 +11,7 @@ class NetworkBenderFrame(Frame):
 
     def __init__(self):
         super().__init__()
-
+        self.bg = "white"
         self.initUI()
     
     def run(self):
@@ -137,6 +137,13 @@ class NetworkBenderFrame(Frame):
         )
         button.grid(column=0, row = NUM_TRANSFORMS)
         
+        Label(self, text="layer").grid(row=0,column=1)
+        Label(self, text="transform").grid(row=0,column=2)
+        Label(self, text="units").grid(row=0,column=3)
+        Label(self, text="midi").grid(row=0,column=4)
+        Label(self, text="min").grid(row=0,column=5)
+        Label(self, text="max").grid(row=0,column=6)
+        
         for i in range(NUM_TRANSFORMS):
             var_dict = {}
             var_dict["layer"] = StringVar()
@@ -155,27 +162,30 @@ class NetworkBenderFrame(Frame):
                 var_dict["param"].append(param_dict)
             self.all_vars.append(var_dict)
             
+            r = (i*3)+1
             layer_menu = OptionMenu(self, var_dict["layer"] , *layer_options, command=self.option_changed)
             layer_menu.config(width=10)
-            layer_menu.grid(row=i*3, column=1)
+            layer_menu.grid(row=r, column=1)
             transform_menu = OptionMenu(self, var_dict["transform"] , *transform_options, command=self.option_changed)
             transform_menu.config(width=10)
-            transform_menu.grid(row=i*3, column=2)
+            transform_menu.grid(row=r, column=2)
             
             unit_value = Entry(self, textvariable = var_dict["unit_value"], width=10)
-            unit_value.grid(row=i*3, column=3)
+            unit_value.grid(row=r, column=3)
             unit_midi = Entry(self, textvariable = var_dict["unit_midi"], width=10)
-            unit_midi.grid(row=i*3, column=4)
+            unit_midi.grid(row=r, column=4)
             
             for j in range(2):
+                label = Label(self, text='param'+str(j))
+                label.grid(row=r+(j+1),columnspan=2,column=1)
                 param_value = Entry(self, textvariable = var_dict["param"][j]["param_value"], width=10)
-                param_value.grid(row=(i*3)+(j+1), column=1)
+                param_value.grid(row=r+(j+1), column=3)
                 param_midi = Entry(self, textvariable = var_dict["param"][j]["param_midi"], width=10)
-                param_midi.grid(row=(i*3)+(j+1), column=2)
+                param_midi.grid(row=r+(j+1), column=4)
                 param_min = Entry(self, textvariable = var_dict["param"][j]["param_min"], width=10)
-                param_min.grid(row=(i*3)+(j+1), column=3)
+                param_min.grid(row=r+(j+1), column=5)
                 param_max = Entry(self, textvariable = var_dict["param"][j]["param_max"], width=10)
-                param_max.grid(row=(i*3)+(j+1), column=4)
+                param_max.grid(row=r+(j+1), column=6)
             
  
         self.pack()
