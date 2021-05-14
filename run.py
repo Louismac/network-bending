@@ -28,54 +28,54 @@ config["input_buf_length"] = 4 * samplerate
 config["frames"] = 1000
 #transforms for first layer
 
-config["transforms"] = [
-    {
-        "layer":"FC2",
-        "function":"ablate",
-        "units":
-        {                
-            "value":0.7,
-            "midi":
-            {
-                "cc":22
-            }
-        },
-    },
-    {
-        "layer":"FC2",
-        "function":"oscillate",
-        "units":
-        {                
-            "value":0.7,
-            "midi":
-            {
-                "cc":23
-            }
-        },
-        "params":[
-            {
-                "name":"depth",
-                "value":1,
-                "midi":
-                {
-                    "min":-5,
-                    "max":5,
-                    "cc":24
-                }
-            },
-            {
-                "name":"freq",
-                "value":5,
-                "midi":
-                {
-                    "min":3,
-                    "max":20,
-                    "cc":25
-                }
-            },
-        ]
-    }
-]
+# config["transforms"] = [
+#     {
+#         "layer":"FC2",
+#         "function":"ablate",
+#         "units":
+#         {                
+#             "value":0.7,
+#             "midi":
+#             {
+#                 "cc":22
+#             }
+#         },
+#     },
+#     {
+#         "layer":"FC2",
+#         "function":"oscillate",
+#         "units":
+#         {                
+#             "value":0.7,
+#             "midi":
+#             {
+#                 "cc":23
+#             }
+#         },
+#         "params":[
+#             {
+#                 "name":"depth",
+#                 "value":1,
+#                 "midi":
+#                 {
+#                     "min":-5,
+#                     "max":5,
+#                     "cc":24
+#                 }
+#             },
+#             {
+#                 "name":"freq",
+#                 "value":5,
+#                 "midi":
+#                 {
+#                     "min":3,
+#                     "max":20,
+#                     "cc":25
+#                 }
+#             },
+#         ]
+#     }
+# ]
 
 g = Generator()
 g.check_config(config)

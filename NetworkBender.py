@@ -555,7 +555,6 @@ class Generator():
         
         if midi:
             def receive_message(message):
-                #print(message)
                 cc = message.control
                 for t in config["transforms"]:
                     if "midi" in t["units"].keys():
