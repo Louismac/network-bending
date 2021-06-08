@@ -13,6 +13,12 @@ class NetworkBenderFrame(Frame):
     def __init__(self):
         super().__init__()
         self.bg = "white"
+        self.params = {
+           "ablate":[],
+           "invert":[],
+           "oscillate":["depth","freq"],
+           "threshold":["thresh"]
+        }
         self.init_ui()
         self.update_ui_from_file()
 
@@ -67,10 +73,13 @@ class NetworkBenderFrame(Frame):
         t.start()
 
     def update_ui_from_file(self):
-        f = open('data.json',)
-        data = json.load(f)
-        self.update_ui_from_dict(data)
-        f.close()
+        try:
+            with open('data.json',) as f:
+                data = json.load(f)
+                self.update_ui_from_dict(data)
+                f.close()
+        except:
+            print("error opening file")
 
     def update_ui_from_dict(self, data):
 
@@ -82,10 +91,14 @@ class NetworkBenderFrame(Frame):
             self.gui_elements[i]["layer"].set(t["layer"])
             self.gui_elements[i]["transform"].set(t["function"])
             self.gui_elements[i]["unit_value"].set(t["units"]["value"])
+            params = self.params[t["function"]]
             if "midi" in t["units"].keys():
                 self.gui_elements[i]["unit_midi"].set(t["units"]["midi"]["cc"])
+            for j in range(2):
+                self.gui_elements[i]["param"][j]["param_label"].config(text = "NA")
             for j, p in enumerate(t["params"]):
                 self.gui_elements[i]["param"][j]["param_value"].set(p["value"])
+                self.gui_elements[i]["param"][j]["param_label"].config(text = params[j])
                 if "midi" in p.keys():
                     self.gui_elements[i]["param"][j]["param_midi"].set(p["midi"]["cc"])
                     self.gui_elements[i]["param"][j]["param_min"].set(p["midi"]["min"])
@@ -102,13 +115,6 @@ class NetworkBenderFrame(Frame):
         """
 
         config = []
-
-        self.params = {
-           "ablate":[],
-           "invert":[],
-           "oscillate":["depth","freq"],
-           "threshold":["thresh"]
-        }
 
         for row in self.gui_elements:
             c = {}
@@ -153,6 +159,8 @@ class NetworkBenderFrame(Frame):
 
     def option_changed(self, *args):
         print(f'You selected: {args}')
+        self.update_transforms_from_ui()
+        self.update_ui_from_dict(self.transforms)
 
     def init_ui(self):
 
@@ -203,7 +211,7 @@ class NetworkBenderFrame(Frame):
             var_dict["unit_value"].set("0.5")
             var_dict["unit_midi"] = StringVar()
             var_dict["param"] = []
-            for _ in range(2):
+            for j in range(2):
                 param_dict = {}
                 param_dict["param_value"] = StringVar()
                 param_dict["param_value"].set("0.5")
@@ -211,6 +219,7 @@ class NetworkBenderFrame(Frame):
                 param_dict["param_min"] = StringVar()
                 param_dict["param_max"] = StringVar()
                 param_dict["param_lfo"] = StringVar()
+                param_dict["param_label"] = Label(self, text="NA")
                 var_dict["param"].append(param_dict)
             self.gui_elements.append(var_dict)
 
@@ -230,19 +239,18 @@ class NetworkBenderFrame(Frame):
             unit_midi.grid(row=r, column=4)
 
             for j in range(2):
-                label = Label(self, text='param'+str(j))
+                label = var_dict["param"][j]["param_label"]
                 label.grid(row=r+(j+1),columnspan=2,column=1)
                 param_value = Entry(self, textvariable = var_dict["param"][j]["param_value"], width=ENTRY_WIDTH)
                 param_value.grid(row=r+(j+1), column=3)
                 param_midi = Entry(self, textvariable = var_dict["param"][j]["param_midi"], width=ENTRY_WIDTH)
                 param_midi.grid(row=r+(j+1), column=4)
+                param_lfo = Entry(self, textvariable = var_dict["param"][j]["param_lfo"], width=ENTRY_WIDTH)
+                param_lfo.grid(row=r+(j+1), column=5)
                 param_min = Entry(self, textvariable = var_dict["param"][j]["param_min"], width=ENTRY_WIDTH)
-                param_min.grid(row=r+(j+1), column=5)
+                param_min.grid(row=r+(j+1), column=6)
                 param_max = Entry(self, textvariable = var_dict["param"][j]["param_max"], width=ENTRY_WIDTH)
-                param_max.grid(row=r+(j+1), column=6)
-                param_max = Entry(self, textvariable = var_dict["param"][j]["param_lfo"], width=ENTRY_WIDTH)
                 param_max.grid(row=r+(j+1), column=7)
-
 
         self.pack()
 
