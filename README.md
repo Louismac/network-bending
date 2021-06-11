@@ -3,209 +3,75 @@
 Colab host for Network Bending Neural Vocoders demo. Supported by [HDI Network](https://hdi-network.org/) and [MIMIC project](https://mimicproject.com/).
 
 ### Paper
-[Network Bending Neural Vocoders](https://drive.google.com/file/d/18FZXxBMBES5BYtqqm6OZKoGXXtPS98Gc/view) @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop 
+[Network Bending Neural Vocoders](https://drive.google.com/file/d/18FZXxBMBES5BYtqqm6OZKoGXXtPS98Gc/view) @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop
 
-We provide one notebook with a model (trained on Whitney Houston) for you to experiment with.
 
-[Open in Colab](https://colab.research.google.com/github/Louismac/network-bending/blob/main/NetworkBending.ipynb)
+### Running interface
 
-You can change the tranformations and bending using the config dictionary, instructions below
+We provide a Python implementation with GUI interface, which should run in real time on normal (CPU) laptops (tested on 2019 Macbook Pro).
 
-# Defining Transforms 
-## Dictionaries and Arrays in Python
-The config that we pass to the program to tell it how we want to make sound is made of two main types of list. 
+1. Clone Repo
 
-### Dictionary 
-A Dictionary is a type of list where the items are indexed by a key (normally just a word in “brackets”). It is started and ended with curly brackets e.g. { … } and the items in it are separated by commas. 
+2. Install
+
+   a. ddsp, tensorflow, gin, numpy, pandas, scipy, librosa, sounddevice, mido
+
+3. Run `python gui.py`. This will load the default flute model, and 1 minute of White Houston audio as an input file. You can provide your own models, input audio file and midi port (if using midi controller) as arguments here.
 ```
-{
-   “Item1” : 2,
-   “Item2” : ”hat”
-}
-```
-### Array 
-An array is a type of list that is just a sequential list of items. It is started and ended by square brackets e.g. [....] and the items in it are separated by commas 
-```
-[
-   2,
-   3,
-   “hat”
-]
+   usage: gui.py [-h] [-i INPUT_AUDIO] [-p MIDI_PORT] [-m MODEL]
+
+   optional arguments:
+     -h, --help            show this help message and exit
+     -i INPUT_AUDIO, --input_audio INPUT_AUDIO
+                           name of file in audio_data directory
+     -p MIDI_PORT, --midi_port MIDI_PORT
+                           name of midi port to connect to
+     -m MODEL, --model MODEL
+                           name of folder containing model checkpoint in Models
+                           folder
 ```
 
-## Layers 
-For each layer (“FC1”, “GRU”, “FC2”), you can define an array of transforms. Each transform is a dictionary. 
+### Using the Software
 
-```
-config[“FC1”] = [
-{
-   <transform 1>
-},
-{
-   <transform 2>
-}
-]
-```
+![A screenshot of the interface](fig_gui.png "The Interface")
 
-## Transforms
-Each transform dictionary has two key items 
-- “function” : the name of the transform
-- “units” :  the proportion of units to apply the transform to (between 0->1). 
+When you are ready to begin, or want to update with new settings, click `Update`
 
-```
-config["FC1"] = [
-{
-   "function":"invert",
-   "units":0.6,
-}
-]
-```
 
-## Parameters
-Some transforms have parameters, and these can be constant values, ramped over time or controlled by an lfo. The “params” item in the transform is an array of dictionaries, each telling a specific parameter how to behave.
+You have 5 slots to chain the layer transformations. Transformations are applied to activations **following** each layer.  
 
-### Constant value at 0.5
-```
-config["FC1"] = [
-{
-   "function":"threshold",
-   "units":0.6,
-   "params":[
-     {
-     "name":"thresh",
-     "args":{
-         "scalar":0.5
-       }
-     }
-   ]
-}
-]
-```
-### Ramp from 0->1
-```
-config["FC1"] = [
-{
-   "function":"threshold",
-   "units":0.6,
-   "params":[
-     {
-     "name":"thresh",
-     "args":{
-         "ramp":True,
-        "min":0,
-          "max":1,
-       }
-     }
-   ]
-}
-]
-```
+#### Layers
 
-### LFO at 2hz between -1 and 1
-```
-config["FC1"] = [
-{
-   "function":"threshold",
-   "units":0.6,
-   "params":[
-     {
-     "name":"thresh",
-     "args":{
-         "lfo":True,
-        "min":-1,
-          "max":1,
-          "freq”:2,  
-       }
-     }
-   ]
-}
-]
-```
+1. _FC1_: The first fully connected layer
 
-## The Transforms 
-### Oscillate 
-Add an oscillation to the activations in the time dimension. This has two parameters (“freq” and “depth”). Here we use a ramp to gradually increase both of the parameters over time.
-```
-config["FC1"] = [
-{
-   "function":"oscillate",
-   "units":0.7,
-   "params":[
-       {"name":"depth",
-        "args":{
-           "ramp":True,
-           "min":0.1,
-           "max":0.4,
-           }
-       },
-       {"name":"freq",
-        "args":{
-           "ramp":True,
-           "min":3,
-           "max":5,
-           }
-       }
-   ]
-}
-]
-```
+2. _GRU_: The recurrent layer
 
-### Ablate
+3. _FC2_: The second fully connected layers
+
+#### Transforms
+
+##### oscillate
+
+Add an oscillation to the activations in the time dimension. This has two parameters (`freq` and `depth`).
+
+##### ablate
+
 Set activations to 0. This has no parameters.
-```
-config["FC1"] = [
-{
-   "function":"ablate",
-   "units":0.6,
-}
-]
-```
 
-### Invert
+##### invert
+
 1 - activations. This has no parameters.
-```
-config["FC1"] = [
-{
-   "function":"invert",
-   "units":0.6,
-}
-]
-```
 
-### Shift
-Translate all values by a given amount, this kind of works as a shuffle function. There is 1 parameter (“shift_by”) that goes between 0 and 1.
-```
-config["FC1"] = [
-{
-   "function":"shift",
-   "units":0.6,
-   "params":[
-     {
-     "name":"shift_by",
-     "args":{
-         "scalar":0.5
-       }
-     }
-   ]
-}
-]
-```
+#### threshold
 
-### Threshold
-Set all values below the threshold to 0, and all values above the threshold to 1. There is 1 parameter (“thresh”).
-``` 
-config["FC1"] = [
-{
-   "function":"threshold",
-   "units":0.6,
-   "params":[
-     {
-     "name":"thresh",
-     "args":{
-         "scalar":0.5
-       }
-     }
-   ]
-}
-]
-```
+Set all values below the threshold to the minimum value of the activations matrix, and all values above the threshold to maximum value of the activations matrix. There is 1 parameter (`thresh`).
+
+#### Units
+
+Set from 0 to 1 determining the proportion of units that the transform is applied to. Can be updated with the text input **or** can be controlled by `midi` (mapped 0-1), provide the `midi cc` channel in the `midi` input. Audio is generated in 4 second blocks so any changes will apply to the subsequent block of audio.
+
+#### Parameters
+
+Some transforms (`oscillate` and `threshold`) have parameters that can be controlled by midi, or by set by an LFO. **Either** provide the `midi cc` channel in the `midi` input **or** an LFO frequency in the `lfo_freq` input. The `min` and `max` sets the range / mapping for either the LFO or midi controller.
+
+### After all updates, press the `Update` button to update the model!

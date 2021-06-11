@@ -271,7 +271,7 @@ if __name__ == '__main__':
     parser.add_argument("-m","--model",help="name of folder containing model checkpoint in Models folder")
     args = parser.parse_args()
     config = {
-        "midi_port":"",
+        "midi_port":"i_will_always_1min.wav",
         "model":"Flute2021New",
         "input_audio":""
     }
