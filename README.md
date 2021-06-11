@@ -1,6 +1,6 @@
 # Network Bending Neural Vocoders
 ## Louis McCallun and Matthew Yee-King
-Colab host for Network Bending Neural Vocoders demo. Supported by [HDI Network](https://hdi-network.org/) and [MIMIC project](https://mimicproject.com/).
+Colab host for Network Bending Neural Vocoders demo. Supported by [HDI Network](https://hdi-network.org/), [MIMIC project](https://mimicproject.com/) and [Google AMI](https://medium.com/artists-and-machine-intelligence/research-awards-2021-64df3f7f213b).
 
 ## Paper
 [Network Bending Neural Vocoders](https://drive.google.com/file/d/18FZXxBMBES5BYtqqm6OZKoGXXtPS98Gc/view) @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop
