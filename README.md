@@ -1,5 +1,5 @@
 # Network Bending Neural Vocoders
-## Louis McCallun and Matthew Yee-King
+## Louis McCallum and Matthew Yee-King
 Repo for Network Bending Neural Vocoders demo. Supported by [HDI Network](https://hdi-network.org/), [MIMIC project](https://mimicproject.com/) and [Google AMI](https://medium.com/artists-and-machine-intelligence/research-awards-2021-64df3f7f213b).
 
 ## Paper
