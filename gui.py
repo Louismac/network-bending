@@ -266,9 +266,9 @@ def main(config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--input_audio",)
-    parser.add_argument("-p","--midi_port",)
-    parser.add_argument("-m","--model",)
+    parser.add_argument("-i","--input_audio", help="name of file in audio_data directory")
+    parser.add_argument("-p","--midi_port", help="name of midi port to connect to")
+    parser.add_argument("-m","--model",help="name of folder containing model checkpoint in Models folder")
     args = parser.parse_args()
     config = {
         "midi_port":"",
