@@ -7,11 +7,13 @@ from expand_gpu_memory import expand
 import numpy as np
 import threading
 import json
+import sys, argparse
 
 class NetworkBenderFrame(Frame):
 
-    def __init__(self):
+    def __init__(self, input_args):
         super().__init__()
+        self.input_args = input_args
         self.bg = "white"
         self.params = {
            "ablate":[],
@@ -23,11 +25,11 @@ class NetworkBenderFrame(Frame):
         self.update_ui_from_file()
 
     def run(self):
-        model_name = "ddsp-sax-model"
+        model_name = self.input_args["model"]
         DRIVE_DIR = '.'
         if DRIVE_DIR:
             MODEL_DIR = os.path.join(DRIVE_DIR, 'Models/' + model_name)
-            AUDIO_DATA_DIR = os.path.join(DRIVE_DIR, 'audio_data')
+            AUDIO_DATA_DIR = os.path.join(DRIVE_DIR, 'audio_data/')
 
         expand()
 
@@ -41,9 +43,10 @@ class NetworkBenderFrame(Frame):
 
         def run_model():
             samplerate = 16000
-            input_file = AUDIO_DATA_DIR + "/i_will_always_1min.wav"
+            input_file = AUDIO_DATA_DIR + self.input_args["input_audio"]
             config = {}
             config["model_dir"] = MODEL_DIR
+            config["midi_port"] = self.input_args["midi_port"]
             config["sample_rate"] = samplerate
             #pick how much of input file to do (0->1)
             config["features"] = {"file_name":input_file, "start":0, "end":1}
@@ -66,8 +69,6 @@ class NetworkBenderFrame(Frame):
             else:
                 self.g.update_config(config)
 
-
-
         c = RunModelTask()
         t = threading.Thread(target = c.run, args = (run_model,))
         t.start()
@@ -86,7 +87,9 @@ class NetworkBenderFrame(Frame):
         """
         Update UI given a config object, either from json file or elsewhere
         """
-
+        for i in range(self.NUM_TRANSFORMS):
+            for j in range(2):
+                self.gui_elements[i]["param"][j]["param_label"].config(text = "NA")
         for i, t in enumerate(data):
             self.gui_elements[i]["layer"].set(t["layer"])
             self.gui_elements[i]["transform"].set(t["function"])
@@ -94,8 +97,7 @@ class NetworkBenderFrame(Frame):
             params = self.params[t["function"]]
             if "midi" in t["units"].keys():
                 self.gui_elements[i]["unit_midi"].set(t["units"]["midi"]["cc"])
-            for j in range(2):
-                self.gui_elements[i]["param"][j]["param_label"].config(text = "NA")
+
             for j, p in enumerate(t["params"]):
                 self.gui_elements[i]["param"][j]["param_value"].set(p["value"])
                 self.gui_elements[i]["param"][j]["param_label"].config(text = params[j])
@@ -169,7 +171,7 @@ class NetworkBenderFrame(Frame):
         Style().configure("TButton", padding=(0, 5, 0, 5),
             font='serif 10')
 
-        NUM_TRANSFORMS = 5
+        self.NUM_TRANSFORMS = 5
 
         layer_options = [
             "None",
@@ -193,17 +195,17 @@ class NetworkBenderFrame(Frame):
            text="Update",
            command=self.run
         )
-        button.grid(column=0, row = NUM_TRANSFORMS)
+        button.grid(column=0, row = self.NUM_TRANSFORMS)
 
         Label(self, text="layer").grid(row=0,column=1)
         Label(self, text="transform").grid(row=0,column=2)
-        Label(self, text="units").grid(row=0,column=3)
+        Label(self, text="units/value").grid(row=0,column=3)
         Label(self, text="midi").grid(row=0,column=4)
         Label(self, text="lfo_freq").grid(row=0,column=5)
         Label(self, text="min").grid(row=0,column=6)
         Label(self, text="max").grid(row=0,column=7)
 
-        for i in range(NUM_TRANSFORMS):
+        for i in range(self.NUM_TRANSFORMS):
             var_dict = {}
             var_dict["layer"] = StringVar()
             var_dict["transform"] = StringVar()
@@ -255,12 +257,29 @@ class NetworkBenderFrame(Frame):
         self.pack()
 
 
-def main():
+def main(config):
 
     root = Tk()
-    app = NetworkBenderFrame()
+    app = NetworkBenderFrame(config)
     root.mainloop()
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i","--input_audio",)
+    parser.add_argument("-p","--midi_port",)
+    parser.add_argument("-m","--model",)
+    args = parser.parse_args()
+    config = {
+        "midi_port":"",
+        "model":"Flute2021New",
+        "input_audio":""
+    }
+    print(args)
+    if args.input_audio:
+        config["input_audio"] = args.input_audio
+    if args.model:
+        config["model"] = args.model
+    if args.midi_port:
+        config["midi_port"] = args.midi_port
+    main(config)

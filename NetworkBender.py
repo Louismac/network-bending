@@ -46,7 +46,6 @@ class BendingParam():
     #return 1 block of params
     def get_values(self):
         vals = []
-        print(self.lfo)
         if len(self.lfo.keys())>0:
             r = (self.lfo["max"] - self.lfo["min"]) / 2
             vals = np.array([self.step_lfo() for i in range(self.res)])
@@ -97,8 +96,8 @@ class BendingTransforms():
         units = units.get_units(N)
         #print(src[src < t], t, src)
         selected = src[:,units]
-        selected[selected < thresh] = 0
-        selected[selected > thresh] = 1
+        selected[selected < thresh] = src.min()
+        selected[selected > thresh] = src.max()
         src[:,units] = selected
         return src.reshape((1, M, N))
 
@@ -120,29 +119,29 @@ class BendingTransforms():
         src[:,units] = src[:,units] + b
         return src.reshape((1, M, N))
 
-    def reflect(self, src, r, units):
-        alpha = r
-        a = np.array([[np.cos(2*alpha), np.sin(2*alpha)],
-                      [np.sin(2*alpha), -np.cos(2*alpha)]])
-        return self.linear_transformation(src, a)
-
-    def rotate(self, src, radians, units):
-        alpha = radians
-        a = np.array([[np.cos(alpha), -np.sin(alpha)],
-                      [np.sin(alpha), np.cos(alpha)]])
-        return self.linear_transformation(src, a)
-
-    def linear_transformation(self, src, a):
-        src = src.numpy()
-        src = src.reshape((src.shape[1], src.shape[2]))
-        M, N = src.shape
-        points = np.mgrid[0:N, 0:M].reshape((2, M*N))
-        new_points = np.linalg.inv(a).dot(points).round().astype(int)
-        x, y = new_points.reshape((2, M, N), order='F')
-        indices = x + N*y
-        wrap = np.take(src, indices, mode='wrap').reshape((1, M, N))
-        t = tf.constant(wrap)
-        return t
+    # def reflect(self, src, r, units):
+    #     alpha = r
+    #     a = np.array([[np.cos(2*alpha), np.sin(2*alpha)],
+    #                   [np.sin(2*alpha), -np.cos(2*alpha)]])
+    #     return self.linear_transformation(src, a)
+    #
+    # def rotate(self, src, radians, units):
+    #     alpha = radians
+    #     a = np.array([[np.cos(alpha), -np.sin(alpha)],
+    #                   [np.sin(alpha), np.cos(alpha)]])
+    #     return self.linear_transformation(src, a)
+    #
+    # def linear_transformation(self, src, a):
+    #     src = src.numpy()
+    #     src = src.reshape((src.shape[1], src.shape[2]))
+    #     M, N = src.shape
+    #     points = np.mgrid[0:N, 0:M].reshape((2, M*N))
+    #     new_points = np.linalg.inv(a).dot(points).round().astype(int)
+    #     x, y = new_points.reshape((2, M, N), order='F')
+    #     indices = x + N*y
+    #     wrap = np.take(src, indices, mode='wrap').reshape((1, M, N))
+    #     t = tf.constant(wrap)
+    #     return t
 
 class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
     def __init__(self):
@@ -163,7 +162,7 @@ class BendingDecoder(ddsp.training.decoders.RnnFcDecoder):
         self.t[layer][name] = tf.keras.layers.Lambda(f, arguments = a)
 
     def add_transform(self, layer, name, f, a):
-        print("adding transform", layer, name, f, a)
+        #print("adding transform", layer, name, f, a)
         self.t[layer][name] = tf.keras.layers.Lambda(f, arguments = a)
 
     def compute_output(self, *inputs):
@@ -469,9 +468,9 @@ class Generator():
                 #Inherit the properties from the dict and set on the BendingParam object
                 if "args" in p.keys():
                     for k,v in p["args"].items():
-                        print(k, v)
+                        #print(k, v)
                         setattr(transform_arguments[p["name"]], k, v)
-        print("transform_arguments",transform_arguments)
+        #print("transform_arguments",transform_arguments)
         return transform_arguments
 
     def update_transforms(self, config):
@@ -494,7 +493,6 @@ class Generator():
         """
 
         for i, c in enumerate(config["transforms"]):
-            print(c)
             args = self.get_transform_args(c)
             function = getattr(self.transforms[c["layer"]], c["function"])
             self.model.decoder.add_transform(c["layer"], str(i), function, args)
@@ -570,7 +568,7 @@ class Generator():
         audio_ptr = [0]
         output_signal = [self.run_feature_block_through_model(audio_features[audio_ptr[0]])]
 
-        if midi:
+        if midi and not config["midi_port"] == "":
             def receive_message(message):
                 cc = message.control
                 did_update = False
@@ -591,7 +589,9 @@ class Generator():
                 if did_update:
                     self.update_transforms(self.config)
 
-            self.inport = mido.open_input('Akai MPD32 Port 1')
+            #self.inport = mido.open_input('Akai MPD32 Port 1')
+
+            self.inport = mido.open_input(config["midi_port"])
             self.inport.callback = receive_message
 
         class GenerateAudioTask:
