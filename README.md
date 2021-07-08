@@ -5,10 +5,13 @@ Repo for Network Bending Neural Vocoders demo. Supported by [HDI Network](https:
 ## Paper
 [Network Bending Neural Vocoders](https://drive.google.com/file/d/18FZXxBMBES5BYtqqm6OZKoGXXtPS98Gc/view) @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop
 
+## Audio Examples
+
+[Audio examples](http://louismccallum.com/network-bending-audio-examples)
 
 ## Running interface
 
-We provide a Python implementation with GUI interface, which should run in real time on normal (CPU) laptops (tested on 2019 Macbook Pro).
+We provide a Python implementation with GUI interface, which should run in real time on normal (CPU) laptops (tested on 2019 Macbook Pro). As with other DDSP examples, this will pulll the pitch and amplitude from a given audio file and use that to power the model.
 
 1. Clone Repo
 
