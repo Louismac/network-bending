@@ -160,7 +160,7 @@ class NetworkBenderFrame(Frame):
         print(self.transforms)
 
     def option_changed(self, *args):
-        print(f'You selected: {args}')
+        #print(f'You selected: {args}')
         self.update_transforms_from_ui()
         self.update_ui_from_dict(self.transforms)
 
@@ -271,9 +271,9 @@ if __name__ == '__main__':
     parser.add_argument("-m","--model",help="name of folder containing model checkpoint in Models folder")
     args = parser.parse_args()
     config = {
-        "midi_port":"i_will_always_1min.wav",
+        "midi_port":"Akai MPD32 Port 1",
         "model":"Flute2021New",
-        "input_audio":""
+        "input_audio":"i_will_always_1min.wav"
     }
     print(args)
     if args.input_audio:
