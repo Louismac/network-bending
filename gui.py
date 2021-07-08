@@ -271,7 +271,7 @@ if __name__ == '__main__':
     parser.add_argument("-m","--model",help="name of folder containing model checkpoint in Models folder")
     args = parser.parse_args()
     config = {
-        "midi_port":"Akai MPD32 Port 1",
+        "midi_port":"",
         "model":"Flute2021New",
         "input_audio":"i_will_always_1min.wav"
     }
