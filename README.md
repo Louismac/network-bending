@@ -14,7 +14,7 @@ We provide a Python implementation with GUI interface, which should run in real 
 
 2. Install
 
-   a. ddsp, tensorflow, gin, numpy, pandas, scipy, librosa, sounddevice, mido
+   a. ddsp, tensorflow, gin, numpy, pandas, scipy, librosa, sounddevice, mido, python-rtmidi
 
 3. Run `python gui.py`. This will load the default flute model, and 1 minute of White Houston audio as an input file. You can provide your own models, input audio file and midi port (if using midi controller) as arguments here.
 
