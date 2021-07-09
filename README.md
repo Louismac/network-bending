@@ -4,6 +4,7 @@ Repo for Network Bending Neural Vocoders demo. Supported by [HDI Network](https:
 
 ## Paper
 [Network Bending Neural Vocoders](https://drive.google.com/file/d/18FZXxBMBES5BYtqqm6OZKoGXXtPS98Gc/view) @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop
+[Studio report: sound synthesis with DDSP andnetwork bending techniques](https://aimc2021.iem.at/wp-content/uploads/2021/06/AIMC_2021_YeeKing_McCallum.pdf) @ 2nd Conference on AI Music Creativity (MuMe + CSMC) 2021
 
 ## Audio Examples
 
