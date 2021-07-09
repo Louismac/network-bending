@@ -2,8 +2,10 @@
 ## Louis McCallum and Matthew Yee-King
 Repo for Network Bending Neural Vocoders demo. Supported by [HDI Network](https://hdi-network.org/), [MIMIC project](https://mimicproject.com/) and [Google AMI](https://medium.com/artists-and-machine-intelligence/research-awards-2021-64df3f7f213b).
 
-## Paper
+## Papers
+
 [Network Bending Neural Vocoders](https://drive.google.com/file/d/18FZXxBMBES5BYtqqm6OZKoGXXtPS98Gc/view) @ NeurIPS 2020, Machine Learning for Creativity and Design Workshop
+
 [Studio report: sound synthesis with DDSP andnetwork bending techniques](https://aimc2021.iem.at/wp-content/uploads/2021/06/AIMC_2021_YeeKing_McCallum.pdf) @ 2nd Conference on AI Music Creativity (MuMe + CSMC) 2021
 
 ## Audio Examples
